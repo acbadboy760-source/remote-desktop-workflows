@@ -1,60 +1,35 @@
-name: Run Simple Site
+name: "✨ Web-based VPS (Expose Tunnel) ✨"
 
 on:
   workflow_dispatch:
 
 jobs:
-  site:
+  build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Create index.html
+      - name: "🧠 نصب پیش‌نیازها"
         run: |
-          cat > index.html << 'EOF'
-          <!DOCTYPE html>
-          <html>
-          <head>
-              <meta charset="UTF-8">
-              <title>My Site</title>
-              <style>
-                  body {
-                      background: #000;
-                      display: flex;
-                      justify-content: center;
-                      align-items: center;
-                      height: 100vh;
-                      margin: 0;
-                  }
-                  h1 {
-                      color: red;
-                      font-size: 5rem;
-                      font-family: Arial, sans-serif;
-                  }
-              </style>
-          </head>
-          <body>
-              <h1>HI BRO</h1>
-              <script>
-                  console.log("Welcome to the site!");
-              </script>
-          </body>
-          </html>
-          EOF
+          sudo apt update
+          sudo apt install -y nodejs npm
+          sudo npm install -g pm2
 
-      - name: Start Python HTTP server
+      - name: "🖥️ اجرای WeTTY (ترمینال تحت وب)"
         run: |
-          python3 -m http.server 8080 &
+          pm2 start 'npx --yes wetty@2.5.0 --port 8080 --command /bin/bash' --name wetty
+          pm2 save
 
-      - name: Install and run Cloudflare Tunnel
+      - name: "🚀 باز کردن تونل با Expose + localhost.run"
+        uses: codetalkio/expose-tunnel@v1.5.0
+        id: expose-tunnel
+        with:
+          service: localhost.run
+          port: 8080
+
+      - name: "🔗 نمایش لینک دسترسی"
         run: |
-          curl -L -o cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
-          chmod +x cloudflared
-          ./cloudflared tunnel --url http://localhost:8080 --logfile cf.log &
-          sleep 15
-          TUNNEL_URL=$(grep -o 'https://[a-z0-9.-]*\.trycloudflare\.com' cf.log | head -1)
-          echo "========================================="
-          echo "✅ سایت شما آماده است"
-          echo "🔗 آدرس: ${TUNNEL_URL}"
-          echo "📌 در کنسول مرورگر پیام خوش‌آمد می‌بینید"
-          echo "⚠️ قبل از باز کردن، VPN را روشن کنید"
-          echo "========================================="
+          echo "✅ لینک VPS ابری خودت (بدون نیاز به VPN):"
+          echo "${{ steps.expose-tunnel.outputs.tunnel-url }}"
+          echo "📌 لینک رو تو مرورگر باز کن. هر دستوری بزنی توی سرور گیت‌هاب اجرا میشه."
+          echo "💡 اگه با وایفای باز نشد، از اینترنت موبایل (ایرانسل یا همراه اول) امتحان کن."
           sleep 6h
