@@ -1,0 +1,32 @@
+name: Site with Live Log
+
+on:
+  workflow_dispatch:
+
+jobs:
+  site:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run server with logging
+        run: |
+          python3 server.py &
+          sleep 3
+          echo "✅ سرور در حال اجراست. لاگ بازدیدها پایین نمایش داده می‌شود."
+
+      - name: Create Cloudflare Tunnel (public access)
+        run: |
+          wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+          chmod +x cloudflared-linux-amd64
+          sudo mv cloudflared-linux-amd64 /usr/local/bin/cloudflared
+          cloudflared tunnel --url http://localhost:8080 --logfile cf.log &
+          sleep 20
+          TUNNEL_URL=$(grep -o 'https://[a-z0-9.-]*\.trycloudflare\.com' cf.log | head -1)
+          echo "========================================="
+          echo "🔗 آدرس عمومی سایت (با VPN روشن باز کن):"
+          echo "$TUNNEL_URL"
+          echo "📌 هر بازدید در همین لاگ (پایین صفحه) ثبت می‌شود."
+          echo "========================================="
+          sleep 6h
